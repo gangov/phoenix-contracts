@@ -199,7 +199,7 @@ impl LiquidityPoolTrait for LiquidityPool {
             token_b: token_b.clone(),
             share_token: share_token_address,
             stake_contract: stake_contract_address,
-            pool_type: PairType::Xyk,
+            // pool_type: PairType::Xyk,
             total_fee_bps: validate_fee_bps(&env, swap_fee_bps),
             fee_recipient,
             max_allowed_slippage_bps,

@@ -56,50 +56,6 @@ else
     TOKEN_ID2=$TOKEN_ADDR1
 fi
 
-echo "Initialize factory..."
-
-MULTIHOP=$(soroban contract install \
-    --wasm phoenix_multihop.optimized.wasm \
-    --source $IDENTITY_STRING \
-    --network testnet)
-
-soroban contract invoke \
-    --id $FACTORY_ADDR \
-    --source $IDENTITY_STRING \
-    --network testnet \
-    -- \
-    initialize \
-    --admin $ADMIN_ADDRESS \
-    --multihop_wasm_hash $MULTIHOP
-
-echo "Factory initialized. " + $FACTORY_ADDR
-
-echo "Initialize the token contracts..."
-
-# soroban contract invoke \
-#     --id $TOKEN_ID1 \
-#     --source $IDENTITY_STRING \
-#     --network testnet \
-#     -- \
-#     initialize \
-#     --admin $ADMIN_ADDRESS \
-#     --decimal 7 \
-#     --name TOKEN \
-#     --symbol TOK
-
-soroban contract invoke \
-    --id $TOKEN_ADDR2 \
-    --source $IDENTITY_STRING \
-    --network testnet \
-    -- \
-    initialize \
-    --admin $ADMIN_ADDRESS \
-    --decimal 7 \
-    --name PHOENIX \
-    --symbol PHO
-
-echo "Tokens initialized."
-
 echo "Install the soroban_token, phoenix_pool and phoenix_stake contracts..."
 
 TOKEN_WASM_HASH=$(soroban contract install \
@@ -120,6 +76,42 @@ STAKE_WASM_HASH=$(soroban contract install \
 
 echo "Token, pair and stake contracts deployed."
 
+echo "Initialize factory..."
+
+MULTIHOP=$(soroban contract install \
+    --wasm phoenix_multihop.optimized.wasm \
+    --source $IDENTITY_STRING \
+    --network testnet)
+
+soroban contract invoke \
+    --id $FACTORY_ADDR \
+    --source $IDENTITY_STRING \
+    --network testnet \
+    -- \
+    initialize \
+    --admin $ADMIN_ADDRESS \
+    --multihop_wasm_hash $MULTIHOP \
+    --lp_wasm_hash $PAIR_WASM_HASH \
+    --stake_wasm_hash $STAKE_WASM_HASH \
+    --token_wasm_hash $TOKEN_WASM_HASH
+
+echo "Factory initialized. " + $FACTORY_ADDR
+
+echo "Initialize the token contracts..."
+
+soroban contract invoke \
+    --id $TOKEN_ADDR2 \
+    --source $IDENTITY_STRING \
+    --network testnet \
+    -- \
+    initialize \
+    --admin $ADMIN_ADDRESS \
+    --decimal 7 \
+    --name PHOENIX \
+    --symbol PHO
+
+echo "Tokens initialized."
+
 
 echo "Initialize pair using the previously fetched hashes through factory..."
 
@@ -129,7 +121,7 @@ soroban contract invoke \
     --network testnet \
     -- \
     create_liquidity_pool \
-    --lp_init_info "{ \"admin\": \"${ADMIN_ADDRESS}\", \"lp_wasm_hash\": \"${PAIR_WASM_HASH}\", \"share_token_decimals\": 7, \"swap_fee_bps\": 1000, \"fee_recipient\": \"${ADMIN_ADDRESS}\", \"max_allowed_slippage_bps\": 10000, \"max_allowed_spread_bps\": 10000, \"max_referral_bps\": 5000, \"token_init_info\": { \"token_wasm_hash\": \"${TOKEN_WASM_HASH}\", \"token_a\": \"${TOKEN_ID1}\", \"token_b\": \"${TOKEN_ID2}\" }, \"stake_init_info\": { \"stake_wasm_hash\": \"${STAKE_WASM_HASH}\", \"min_bond\": \"100\", \"min_reward\": \"100\", \"max_distributions\": 3 } }"
+    --lp_init_info "{ \"admin\": \"${ADMIN_ADDRESS}\", \"share_token_decimals\": 7, \"swap_fee_bps\": 1000, \"fee_recipient\": \"${ADMIN_ADDRESS}\", \"max_allowed_slippage_bps\": 10000, \"max_allowed_spread_bps\": 10000, \"max_referral_bps\": 5000, \"token_init_info\": { \"token_a\": \"${TOKEN_ID1}\", \"token_b\": \"${TOKEN_ID2}\" }, \"stake_init_info\": { \"min_bond\": \"100\", \"min_reward\": \"100\", \"max_distributions\": 3 } }"
 
 echo "Query pair address..."
 
@@ -143,12 +135,6 @@ PAIR_ADDR=$(soroban contract invoke \
 echo "Pair contract initialized."
 
 echo "Mint both tokens to the admin and provide liquidity..."
-# soroban contract invoke \
-#     --id $TOKEN_ADDR1 \
-#     --source $IDENTITY_STRING \
-#     --network testnet \
-#     -- \
-#     mint --to $ADMIN_ADDRESS --amount 100000000000
 
 soroban contract invoke \
     --id $TOKEN_ADDR2 \
@@ -163,7 +149,7 @@ soroban contract invoke \
     --source $IDENTITY_STRING \
     --network testnet --fee 10000000 \
     -- \
-    provide_liquidity --sender $ADMIN_ADDRESS --desired_a 9999845 --desired_b 50000000000
+    provide_liquidity --sender $ADMIN_ADDRESS --desired_a 9999845 --desired_b 500000000
 
 echo "Liquidity provided."
 
@@ -183,7 +169,7 @@ soroban contract invoke \
     --source $IDENTITY_STRING \
     --network testnet \
     -- \
-    bond --sender $ADMIN_ADDRESS --tokens 70000000
+    bond --sender $ADMIN_ADDRESS --tokens 700000
 
 echo "Tokens bonded."
 
@@ -225,27 +211,6 @@ soroban contract invoke \
 
 echo "Tokens initialized."
 
-echo "Install the soroban_token, phoenix_pool and phoenix_stake contracts..."
-
-TOKEN_WASM_HASH=$(soroban contract install \
-    --wasm soroban_token_contract.optimized.wasm \
-    --source $IDENTITY_STRING \
-    --network testnet)
-
-# Continue with the rest of the deployments
-PAIR_WASM_HASH=$(soroban contract install \
-    --wasm phoenix_pool.optimized.wasm \
-    --source $IDENTITY_STRING \
-    --network testnet)
-
-STAKE_WASM_HASH=$(soroban contract install \
-    --wasm phoenix_stake.optimized.wasm \
-    --source $IDENTITY_STRING \
-    --network testnet)
-
-echo "Token, pair and stake contracts deployed."
-
-
 echo "Initialize pair using the previously fetched hashes through factory..."
 
 soroban contract invoke \
@@ -254,7 +219,7 @@ soroban contract invoke \
     --network testnet \
     -- \
     create_liquidity_pool \
-    --lp_init_info "{ \"admin\": \"${ADMIN_ADDRESS}\", \"lp_wasm_hash\": \"${PAIR_WASM_HASH}\", \"share_token_decimals\": 7, \"swap_fee_bps\": 1000, \"fee_recipient\": \"${ADMIN_ADDRESS}\", \"max_allowed_slippage_bps\": 10000, \"max_allowed_spread_bps\": 10000, \"max_referral_bps\": 5000, \"token_init_info\": { \"token_wasm_hash\": \"${TOKEN_WASM_HASH}\", \"token_a\": \"${TOKEN_ID1}\", \"token_b\": \"${TOKEN_ID2}\" }, \"stake_init_info\": { \"stake_wasm_hash\": \"${STAKE_WASM_HASH}\", \"min_bond\": \"100\", \"min_reward\": \"100\", \"max_distributions\": 3 } }"
+    --lp_init_info "{ \"admin\": \"${ADMIN_ADDRESS}\", \"share_token_decimals\": 7, \"swap_fee_bps\": 1000, \"fee_recipient\": \"${ADMIN_ADDRESS}\", \"max_allowed_slippage_bps\": 10000, \"max_allowed_spread_bps\": 10000, \"max_referral_bps\": 5000, \"token_init_info\": { \"token_a\": \"${TOKEN_ID1}\", \"token_b\": \"${TOKEN_ID2}\" }, \"stake_init_info\": { \"min_bond\": \"100\", \"min_reward\": \"100\", \"max_distributions\": 3 } }"
 
 PAIR_ADDR=$(soroban contract invoke \
     --id $FACTORY_ADDR \
@@ -266,12 +231,6 @@ PAIR_ADDR=$(soroban contract invoke \
 echo "Pair contract initialized."
 
 echo "Mint both tokens to the admin and provide liquidity..."
-# soroban contract invoke \
-#     --id $TOKEN_ADDR1 \
-#     --source $IDENTITY_STRING \
-#     --network testnet \
-#     -- \
-#     mint --to $ADMIN_ADDRESS --amount 100000000000
 
 echo "Mint..."
 soroban contract invoke \
@@ -288,7 +247,7 @@ soroban contract invoke \
     --source $IDENTITY_STRING \
     --network testnet --fee 10000000 \
     -- \
-    provide_liquidity --sender $ADMIN_ADDRESS --desired_a 8639845 --desired_b 50000000
+    provide_liquidity --sender $ADMIN_ADDRESS --desired_a 86398450 --desired_b 50000000
 
 echo "Liquidity provided."
 
@@ -351,26 +310,6 @@ soroban contract invoke \
 
 echo "Tokens initialized."
 
-echo "Install the soroban_token, phoenix_pool and phoenix_stake contracts..."
-
-TOKEN_WASM_HASH=$(soroban contract install \
-    --wasm soroban_token_contract.optimized.wasm \
-    --source $IDENTITY_STRING \
-    --network testnet)
-
-# Continue with the rest of the deployments
-PAIR_WASM_HASH=$(soroban contract install \
-    --wasm phoenix_pool.optimized.wasm \
-    --source $IDENTITY_STRING \
-    --network testnet)
-
-STAKE_WASM_HASH=$(soroban contract install \
-    --wasm phoenix_stake.optimized.wasm \
-    --source $IDENTITY_STRING \
-    --network testnet)
-
-echo "Token, pair and stake contracts deployed."
-
 echo "Initialize pair using the previously fetched hashes through factory..."
 
 soroban contract invoke \
@@ -379,7 +318,7 @@ soroban contract invoke \
     --network testnet \
     -- \
     create_liquidity_pool \
-    --lp_init_info "{ \"admin\": \"${ADMIN_ADDRESS}\", \"lp_wasm_hash\": \"${PAIR_WASM_HASH}\", \"share_token_decimals\": 7, \"swap_fee_bps\": 1000, \"fee_recipient\": \"${ADMIN_ADDRESS}\", \"max_allowed_slippage_bps\": 10000, \"max_allowed_spread_bps\": 10000, \"max_referral_bps\": 5000, \"token_init_info\": { \"token_wasm_hash\": \"${TOKEN_WASM_HASH}\", \"token_a\": \"${TOKEN_ID1}\", \"token_b\": \"${TOKEN_ID2}\" }, \"stake_init_info\": { \"stake_wasm_hash\": \"${STAKE_WASM_HASH}\", \"min_bond\": \"100\", \"min_reward\": \"100\", \"max_distributions\": 3 } }"
+    --lp_init_info "{ \"admin\": \"${ADMIN_ADDRESS}\", \"share_token_decimals\": 7, \"swap_fee_bps\": 1000, \"fee_recipient\": \"${ADMIN_ADDRESS}\", \"max_allowed_slippage_bps\": 10000, \"max_allowed_spread_bps\": 10000, \"max_referral_bps\": 5000, \"token_init_info\": { \"token_a\": \"${TOKEN_ID1}\", \"token_b\": \"${TOKEN_ID2}\" }, \"stake_init_info\": { \"min_bond\": \"100\", \"min_reward\": \"100\", \"max_distributions\": 3 } }"
 
 PAIR_ADDR=$(soroban contract invoke \
     --id $FACTORY_ADDR \
@@ -391,12 +330,6 @@ PAIR_ADDR=$(soroban contract invoke \
 echo "Pair contract initialized."
 
 echo "Mint both tokens to the admin and provide liquidity..."
-# soroban contract invoke \
-#     --id $TOKEN_ADDR1 \
-#     --source $IDENTITY_STRING \
-#     --network testnet \
-#     -- \
-#     mint --to $ADMIN_ADDRESS --amount 100000000000
 
 echo "Mint..."
 soroban contract invoke \

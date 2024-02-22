@@ -26,34 +26,44 @@ The Rust crate provides the foundational structures and functionalities required
 Defines the standard interface for NFTs, ensuring consistency and interoperability.
 
 ```rust
-trait NFT {
-    fn owner_of(&self, token_id: u64) -> AccountId;
-    fn transfer(&mut self, to: AccountId, token_id: u64);
-    // Additional functions for NFT management
-}
-```
+pub trait Nft {
+    fn initialize(
+        /// Name of the NFT contract
+        name: String,
+        /// Symbol of the NFT contract
+        symbol: String,
 
-#### 3.1.2 NFT Collections
+        minter: Option<String>,
+        withdraw_address: Option<String>,
+    )
 
-Implements the logic for managing collections of NFTs, including creation, transfer, and querying.
-
-```rust
-struct NFTCollection<T: NFT> {
-    nfts: HashMap<u64, T>,
-}
-
-impl<T: NFT> NFTCollection<T> {
-    fn new() -> Self {
-        Self { nfts: HashMap::new() }
-    }
-
-    fn add_nft(&mut self, token_id: u64, nft: T) {
-        self.nfts.insert(token_id, nft);
-    }
-
-    // Additional collection management functions
+    fn mint(
+        /// Unique ID of the NFT
+        token_id: String,
+        /// The owner of the newly minter NFT
+        owner: String,
+        /// Universal resource identifier for this NFT
+        /// Should point to a JSON file that conforms to the ERC721
+        /// Metadata JSON Schema
+        token_uri: Option<String>,
+        /// Any custom extension used by this contract
+        extension: T,
+    )
 }
 
+pub struct Metadata {
+    pub image: Option<String>,
+    pub image_data: Option<String>,
+    pub external_url: Option<String>,
+    pub description: Option<String>,
+    pub name: Option<String>,
+    pub attributes: Option<Vec<Trait>>,
+    pub background_color: Option<String>,
+    pub animation_url: Option<String>,
+    pub youtube_url: Option<String>,
+}
+
+pub type Extension = Option<Metadata>;
 ```
 
 ### 3.2 Smart Contracts for NFT Base Token and Collections

@@ -1,4 +1,4 @@
-use soroban_sdk::Env;
+use soroban_sdk::{I256, Env};
 
 use crate::storage::AmplifierParameters;
 
@@ -45,59 +45,102 @@ pub(crate) fn compute_current_amp(env: &Env, amp_params: &AmplifierParameters) -
     }
 }
 
-/// Computes the stableswap invariant (D).
-///
-/// * **Equation**
-///
-/// A * sum(x_i) * n**n + D = A * D * n**n + D**(n+1) / (n**n * prod(x_i))
-pub fn compute_d(amp: u128, pools: &[Decimal]) -> Decimal {
-    let leverage = Decimal::from_ratio(amp as i128, AMP_PRECISION) * N_COINS;
-    let amount_a_times_coins = pools[0] * N_COINS;
-    let amount_b_times_coins = pools[1] * N_COINS;
+// /// Computes the stableswap invariant (D).
+// ///
+// /// * **Equation**
+// ///
+// /// A * sum(x_i) * n**n + D = A * D * n**n + D**(n+1) / (n**n * prod(x_i))
+// pub fn compute_d(amp: u128, pools: &[Decimal]) -> Decimal {
+//     let leverage = Decimal::from_ratio(amp as i128, AMP_PRECISION) * N_COINS;
+//     let amount_a_times_coins = pools[0] * N_COINS;
+//     let amount_b_times_coins = pools[1] * N_COINS;
+//
+//     let sum_x = pools[0] + pools[1]; // sum(x_i), a.k.a S
+//     if sum_x.is_zero() {
+//         return Decimal::zero();
+//     }
+//
+//     let mut d_previous: Decimal;
+//     let mut d: Decimal = sum_x;
+//
+//     // Newton's method to approximate D
+//     for _ in 0..ITERATIONS {
+//         let d_product = d.pow(3) / (amount_a_times_coins * amount_b_times_coins);
+//         d_previous = d;
+//         d = calculate_step(d, leverage, sum_x, d_product);
+//         // Equality with the precision of 1e-6
+//         if (d - d_previous).abs() <= TOL {
+//             return d;
+//         }
+//     }
+//
+//     panic!("Newton method for D failed to converge");
+// }
+//
+// /// Helper function used to calculate the D invariant as a last step in the `compute_d` public function.
+// ///
+// /// * **Equation**:
+// ///
+// /// d = (leverage * sum_x + d_product * n_coins) * initial_d / ((leverage - 1) * initial_d + (n_coins + 1) * d_product)
+// fn calculate_step(
+//     initial_d: Decimal,
+//     leverage: Decimal,
+//     sum_x: Decimal,
+//     d_product: Decimal,
+// ) -> Decimal {
+//     let leverage_mul = leverage * sum_x;
+//     let d_p_mul = d_product * N_COINS;
+//
+//     let l_val = leverage_mul + d_p_mul * initial_d;
+//     let leverage_sub = initial_d * (leverage - Decimal::one());
+//     let n_coins_sum = d_product * (N_COINS + Decimal::one());
+//
+//     let r_val = leverage_sub + n_coins_sum;
+//
+//     l_val / r_val
+// }
 
-    let sum_x = pools[0] + pools[1]; // sum(x_i), a.k.a S
-    if sum_x.is_zero() {
-        return Decimal::zero();
+// Assuming AMP_PRECISION is defined and N_COINS is adapted for I256 environment
+fn compute_d(env: &Env, amp: I256, pools: &[I256]) -> I256 {
+    let leverage = amp.mul(&I256::from_i32(env, 2i32));
+    let sum_x = pools[0].add(&pools[1]);
+    if sum_x == I256::from_i32(env, 0) {
+        return I256::from_i32(env, 0);
     }
 
-    let mut d_previous: Decimal;
-    let mut d: Decimal = sum_x;
+    let mut d = sum_x;
+    let mut d_previous = I256::from_i32(env, 0);
 
-    // Newton's method to approximate D
     for _ in 0..ITERATIONS {
-        let d_product = d.pow(3) / (amount_a_times_coins * amount_b_times_coins);
+        let d_product = d.pow(3).div(
+            &pools[0].mul(&pools[1]).mul(&I256::from_i32(env, 2i32))
+        );
         d_previous = d;
-        d = calculate_step(d, leverage, sum_x, d_product);
-        // Equality with the precision of 1e-6
-        if (d - d_previous).abs() <= TOL {
-            return d;
+        d = calculate_step(env, d, leverage, sum_x, d_product);
+
+        if d.sub(&d_previous).abs(env) <= TOL {
+            break;
         }
     }
 
-    panic!("Newton method for D failed to converge");
+    d
 }
 
-/// Helper function used to calculate the D invariant as a last step in the `compute_d` public function.
-///
-/// * **Equation**:
-///
-/// d = (leverage * sum_x + d_product * n_coins) * initial_d / ((leverage - 1) * initial_d + (n_coins + 1) * d_product)
+// Adjust the calculate_step function similarly
 fn calculate_step(
-    initial_d: Decimal,
-    leverage: Decimal,
-    sum_x: Decimal,
-    d_product: Decimal,
-) -> Decimal {
-    let leverage_mul = leverage * sum_x;
-    let d_p_mul = d_product * N_COINS;
+    env: &Env,
+    initial_d: I256,
+    leverage: I256,
+    sum_x: I256,
+    d_product: I256,
+) -> I256 {
+    let d_p_mul = d_product.mul(&I256::from_i32(env, 2i32));
+    let leverage_mul = leverage.mul(&sum_x);
+    let l_val = leverage_mul.add(&d_p_mul.mul(&initial_d));
+    let r_val = initial_d.mul(&leverage.sub(&I256::from_i32(env, 1i32)))
+        .add(&d_product.mul(&I256::from_i32(env, 3i32)));
 
-    let l_val = leverage_mul + d_p_mul * initial_d;
-    let leverage_sub = initial_d * (leverage - Decimal::one());
-    let n_coins_sum = d_product * (N_COINS + Decimal::one());
-
-    let r_val = leverage_sub + n_coins_sum;
-
-    l_val / r_val
+    l_val.div(&r_val)
 }
 
 /// Compute the swap amount `y` in proportion to `x`.

@@ -424,12 +424,12 @@ fn provide_liqudity_single_asset_equal_with_fees() {
     // algorithm splits 100k in such way, so that after swapping (with 10% fee)
     // it will provide liquidity maintining 1:1 ratio
     // split is 47_266 token A and 47213 token B (52_734 of token A was swapped to B)
-    // after swap : A(10_052_734), B(9_947_542)
+    // after swap : A(10_052_734), B(9_952_788)
     // after providing liquidity
-    // A(1_100_000), B(9_994_755)
+    // A(1_100_000), B(9_952_788)
 
     // return_amount: i128 = ask_pool - (cp / (offer_pool + offer_amount))
-    let return_amount = 52_458; // that's how many tokens B would be received from 52_734 tokens A
+    let return_amount = 47_212; // that's how many tokens B would be received from 52_734 tokens A
     let fees = Decimal::percent(10);
     assert_eq!(
         token1.balance(&pool.address),

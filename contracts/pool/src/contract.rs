@@ -849,13 +849,12 @@ fn split_deposit_based_on_pool_ratio(
     deposit: i128,
     offer_asset: &Address,
 ) -> (i128, i128) {
-    // check if offer_asset is one of the two tokens in the pool
+    // Initial checks remain the same
     if offer_asset != &config.token_a && offer_asset != &config.token_b {
         log!(&env, "Pool: Token offered to swap not found in Pool");
         panic_with_error!(env, ContractError::AssetNotInPool);
     }
 
-    // Validate the inputs
     if a_pool <= 0 || b_pool <= 0 || deposit <= 0 {
         log!(
             env,
@@ -867,46 +866,43 @@ fn split_deposit_based_on_pool_ratio(
         );
     }
 
-    // Calculate the current ratio in the pool
-    let target_ratio = Decimal::from_ratio(b_pool, a_pool);
-    // Define boundaries for binary search algorithm
+    // Define initial boundaries for binary search
     let mut low = 0;
     let mut high = deposit;
-
-    // Tolerance is the smallest difference in deposit that we care about
     let tolerance = 500;
 
-    let mut final_offer_amount = deposit; // amount of deposit tokens to be swapped
-    let mut final_ask_amount = 0; // amount of other tokens to be received
+    let mut final_offer_amount = deposit; // Initialized with the total deposit
+    let mut final_ask_amount = 0; // This will be calculated
 
     while high - low > tolerance {
-        let mid = (low + high) / 2; // Calculate middle point
+        let mid = (low + high) / 2;
 
-        // Simulate swap to get amount of other tokens to be received for `mid` amount of deposit tokens
-        let SimulateSwapResponse {
-            ask_amount,
-            spread_amount: _,
-            commission_amount: _,
-            total_return: _,
-        } = LiquidityPool::simulate_swap(env.clone(), offer_asset.clone(), mid);
+        // Simulate swap as before
+        let SimulateSwapResponse { ask_amount, .. } = LiquidityPool::simulate_swap(env.clone(), offer_asset.clone(), mid);
 
-        // Update final amounts
+        // Update target ratio after each simulation to reflect post-swap pool balance
+        let new_a_pool = if offer_asset == &config.token_a { a_pool - mid + ask_amount } else { a_pool + deposit - mid };
+        let new_b_pool = if offer_asset == &config.token_b { b_pool - mid + ask_amount } else { b_pool + deposit - mid };
+
+        let target_ratio = Decimal::from_ratio(new_b_pool, new_a_pool);
+
         final_offer_amount = mid;
         final_ask_amount = ask_amount;
 
-        // Calculate the ratio that would result from swapping `mid` deposit tokens
-        let ratio = if offer_asset == &config.token_a {
-            Decimal::from_ratio(ask_amount, deposit - mid)
+        // Determine the new ratio after swap
+        let new_ratio = if offer_asset == &config.token_a {
+            Decimal::from_ratio(ask_amount, new_a_pool - ask_amount)
         } else {
-            Decimal::from_ratio(deposit - mid, ask_amount)
+            Decimal::from_ratio(new_b_pool - ask_amount, ask_amount)
         };
 
-        // If the resulting ratio is approximately equal (1%) to the target ratio, break the loop
-        if is_approx_ratio(ratio, target_ratio, Decimal::percent(1)) {
+        // Break loop if ratio is approximately equal to target ratio, as before
+        if is_approx_ratio(new_ratio, target_ratio, Decimal::percent(1)) {
             break;
         }
-        // Update boundaries for the next iteration of the binary search
-        if ratio > target_ratio {
+
+        // Update search bounds based on comparison between new ratio and target ratio
+        if new_ratio > target_ratio {
             if offer_asset == &config.token_a {
                 high = mid;
             } else {
@@ -916,10 +912,89 @@ fn split_deposit_based_on_pool_ratio(
             low = mid;
         } else {
             high = mid;
-        };
+        }
     }
     (final_offer_amount, final_ask_amount)
 }
+// fn split_deposit_based_on_pool_ratio(
+//     env: &Env,
+//     config: &Config,
+//     a_pool: i128,
+//     b_pool: i128,
+//     deposit: i128,
+//     offer_asset: &Address,
+// ) -> (i128, i128) {
+//     // check if offer_asset is one of the two tokens in the pool
+//     if offer_asset != &config.token_a && offer_asset != &config.token_b {
+//         log!(&env, "Pool: Token offered to swap not found in Pool");
+//         panic_with_error!(env, ContractError::AssetNotInPool);
+//     }
+//
+//     // Validate the inputs
+//     if a_pool <= 0 || b_pool <= 0 || deposit <= 0 {
+//         log!(
+//             env,
+//             "Pool: split_deposit_based_on_pool_ratio: Both pools and deposit must be a positive!"
+//         );
+//         panic_with_error!(
+//             env,
+//             ContractError::SplitDepositBothPoolsAndDepositMustBePositive
+//         );
+//     }
+//
+//     // Calculate the current ratio in the pool
+//     let target_ratio = Decimal::from_ratio(b_pool, a_pool);
+//     // Define boundaries for binary search algorithm
+//     let mut low = 0;
+//     let mut high = deposit;
+//
+//     // Tolerance is the smallest difference in deposit that we care about
+//     let tolerance = 500;
+//
+//     let mut final_offer_amount = deposit; // amount of deposit tokens to be swapped
+//     let mut final_ask_amount = 0; // amount of other tokens to be received
+//
+//     while high - low > tolerance {
+//         let mid = (low + high) / 2; // Calculate middle point
+//
+//         // Simulate swap to get amount of other tokens to be received for `mid` amount of deposit tokens
+//         let SimulateSwapResponse {
+//             ask_amount,
+//             spread_amount: _,
+//             commission_amount: _,
+//             total_return: _,
+//         } = LiquidityPool::simulate_swap(env.clone(), offer_asset.clone(), mid);
+//
+//         // Update final amounts
+//         final_offer_amount = mid;
+//         final_ask_amount = ask_amount;
+//
+//         // Calculate the ratio that would result from swapping `mid` deposit tokens
+//         let ratio = if offer_asset == &config.token_a {
+//             Decimal::from_ratio(ask_amount, deposit - mid)
+//         } else {
+//             Decimal::from_ratio(deposit - mid, ask_amount)
+//         };
+//
+//         // If the resulting ratio is approximately equal (1%) to the target ratio, break the loop
+//         if is_approx_ratio(ratio, target_ratio, Decimal::percent(1)) {
+//             break;
+//         }
+//         // Update boundaries for the next iteration of the binary search
+//         if ratio > target_ratio {
+//             if offer_asset == &config.token_a {
+//                 high = mid;
+//             } else {
+//                 low = mid;
+//             }
+//         } else if offer_asset == &config.token_a {
+//             low = mid;
+//         } else {
+//             high = mid;
+//         };
+//     }
+//     (final_offer_amount, final_ask_amount)
+// }
 
 /// This function asserts that the slippage does not exceed the provided tolerance.
 /// # Arguments

@@ -3,6 +3,7 @@ use soroban_sdk::{
     contract, contractimpl, contractmeta, log, panic_with_error, Address, BytesN, Env, IntoVal,
     String,
 };
+use soroban_sdk::testutils::arbitrary::std::dbg;
 
 use crate::error::ContractError;
 use crate::storage::utils::{is_initialized, set_initialized};
@@ -292,6 +293,7 @@ impl StableLiquidityPoolTrait for StableLiquidityPool {
                 Decimal::from_atomics(new_balance_b, 6),
             ],
         );
+        dbg!("d is computer");
 
         let total_shares = utils::get_total_shares(&env);
         let shares = if total_shares == 0 {
@@ -319,6 +321,7 @@ impl StableLiquidityPoolTrait for StableLiquidityPool {
                 / initial_invariant)
                 .to_i128_with_precision(greatest_precision)
         };
+        dbg!("where am I now?");
 
         let token_a_client = token_contract::Client::new(&env, &config.token_a);
         let token_b_client = token_contract::Client::new(&env, &config.token_b);

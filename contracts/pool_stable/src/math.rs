@@ -1,4 +1,5 @@
 use soroban_sdk::{log, panic_with_error, Env};
+use soroban_sdk::testutils::arbitrary::std::dbg;
 
 use crate::{error::ContractError, storage::AmplifierParameters};
 
@@ -14,11 +15,11 @@ pub const MIN_AMP_CHANGING_TIME: u64 = 86400;
 pub const AMP_PRECISION: u64 = 100;
 
 /// The maximum number of calculation steps for Newton's method.
-const ITERATIONS: u8 = 64;
+const ITERATIONS: u8 = 128;
 /// N = 2
 pub const N_COINS: Decimal = Decimal::raw(2000000000000000000);
 /// 1e-6
-pub const TOL: Decimal = Decimal::raw(1000000000000);
+pub const TOL: Decimal = Decimal::raw(100000000000000);
 
 /// Compute the current pool amplification coefficient (AMP).
 pub(crate) fn compute_current_amp(env: &Env, amp_params: &AmplifierParameters) -> u64 {
@@ -64,12 +65,17 @@ pub fn compute_d(env: &Env, amp: u128, pools: &[Decimal]) -> Decimal {
     let mut d: Decimal = sum_x;
 
     // Newton's method to approximate D
-    for _ in 0..ITERATIONS {
+    dbg!("Start iterations");
+    for i in 0..ITERATIONS {
+        dbg!("Iteration: ", i, " | ", ITERATIONS);
         let d_product = d.pow(3) / (amount_a_times_coins * amount_b_times_coins);
         d_previous = d;
         d = calculate_step(d, leverage, sum_x, d_product);
         // Equality with the precision of 1e-6
+        dbg!("(d - d_previous).abs(): ", (d - d_previous).abs());
+        dbg!("TOL: ", TOL);
         if (d - d_previous).abs() <= TOL {
+            dbg!("am I returning d?", d);
             return d;
         }
     }

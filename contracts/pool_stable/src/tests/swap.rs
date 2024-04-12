@@ -2,6 +2,7 @@ extern crate std;
 
 use pretty_assertions::assert_eq;
 use soroban_sdk::testutils::{AuthorizedFunction, AuthorizedInvocation};
+use soroban_sdk::testutils::arbitrary::std::dbg;
 use soroban_sdk::{symbol_short, testutils::Address as _, Address, Env, IntoVal};
 
 use super::setup::{deploy_stable_liquidity_pool_contract, deploy_token_contract};
@@ -24,6 +25,8 @@ fn simple_swap() {
         std::mem::swap(&mut admin1, &mut admin2);
     }
     let user1 = Address::generate(&env);
+    let stake_manager = Address::generate(&env);
+    let factory = Address::generate(&env);
     let swap_fees = 0i64;
     let pool = deploy_stable_liquidity_pool_contract(
         &env,
@@ -33,11 +36,14 @@ fn simple_swap() {
         None,
         None,
         None,
+        stake_manager,
+        factory
     );
 
     token1.mint(&user1, &1_001_000);
     token2.mint(&user1, &1_001_000);
     pool.provide_liquidity(&user1, &1_000_000, &1_000_000, &None);
+    dbg!("liquidity provided");
 
     // true means "selling A token"
     // selling just one token with 1% max spread allowed
@@ -84,6 +90,7 @@ fn simple_swap() {
                 address: share_token_address.clone(),
                 amount: 1_000_000i128,
             },
+            stake_address: result.clone().stake_address
         }
     );
     assert_eq!(token1.balance(&user1), 999); // -1 from the swap
@@ -108,6 +115,7 @@ fn simple_swap() {
                 address: share_token_address,
                 amount: 1_000_000i128, // this has not changed
             },
+            stake_address: result.clone().stake_address
         }
     );
     assert_eq!(output_amount, 1000);
@@ -132,6 +140,8 @@ fn swap_with_high_fee() {
     }
     let user1 = Address::generate(&env);
 
+    let stake_manager = Address::generate(&env);
+    let factory = Address::generate(&env);
     let swap_fees = 1_000i64; // 10% bps
     let fee_recipient = Address::generate(&env);
     let pool = deploy_stable_liquidity_pool_contract(
@@ -142,6 +152,8 @@ fn swap_with_high_fee() {
         fee_recipient.clone(),
         None,
         None,
+        stake_manager,
+        factory
     );
 
     let initial_liquidity = 1_000_000i128;
@@ -176,6 +188,7 @@ fn swap_with_high_fee() {
                 address: pool.query_share_token_address(),
                 amount: 1_000_000i128,
             },
+            stake_address: result.clone().stake_address
         }
     );
     // 10% fees are deducted from the swap result and sent to fee recipient address
@@ -196,6 +209,8 @@ fn swap_simulation_even_pool() {
         std::mem::swap(&mut token1, &mut token2);
     }
 
+    let stake_manager = Address::generate(&env);
+    let factory = Address::generate(&env);
     let swap_fees = 1_000i64; // 10% bps
     let pool = deploy_stable_liquidity_pool_contract(
         &env,
@@ -205,6 +220,8 @@ fn swap_simulation_even_pool() {
         Address::generate(&env),
         None,
         None,
+        stake_manager,
+        factory
     );
 
     let initial_liquidity = 1_000_000i128;
@@ -289,6 +306,8 @@ fn swap_simulation_one_third_pool() {
         std::mem::swap(&mut token1, &mut token2);
     }
 
+    let stake_manager = Address::generate(&env);
+    let factory = Address::generate(&env);
     let swap_fees = 500i64; // 5% bps
     let pool = deploy_stable_liquidity_pool_contract(
         &env,
@@ -298,6 +317,8 @@ fn swap_simulation_one_third_pool() {
         Address::generate(&env),
         None,
         None,
+        stake_manager,
+        factory
     );
 
     let initial_liquidity = 1_000_000i128;

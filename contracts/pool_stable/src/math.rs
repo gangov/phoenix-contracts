@@ -1,5 +1,5 @@
-use soroban_sdk::{log, panic_with_error, Env};
 use soroban_sdk::testutils::arbitrary::std::dbg;
+use soroban_sdk::{log, panic_with_error, Env};
 
 use crate::{error::ContractError, storage::AmplifierParameters};
 
@@ -65,15 +65,15 @@ pub fn compute_d(env: &Env, amp: u128, pools: &[Decimal]) -> Decimal {
     let mut d: Decimal = sum_x;
 
     // Newton's method to approximate D
-    dbg!("Start iterations");
+    // dbg!("Start iterations");
     for i in 0..ITERATIONS {
-        dbg!("Iteration: ", i, " | ", ITERATIONS);
+        // dbg!("Iteration: ", i, " | ", ITERATIONS);
         let d_product = d.pow(3) / (amount_a_times_coins * amount_b_times_coins);
         d_previous = d;
         d = calculate_step(d, leverage, sum_x, d_product);
         // Equality with the precision of 1e-6
-        dbg!("(d - d_previous).abs(): ", (d - d_previous).abs());
-        dbg!("TOL: ", TOL);
+        // dbg!("(d - d_previous).abs(): ", (d - d_previous).abs());
+        // dbg!("TOL: ", TOL);
         if (d - d_previous).abs() <= TOL {
             dbg!("am I returning d?", d);
             return d;
@@ -125,7 +125,10 @@ pub(crate) fn calc_y(
     target_precision: u8,
 ) -> i128 {
     let d = compute_d(env, amp, xp);
-    let leverage = Decimal::from_ratio(amp as i128, 1u8) * N_COINS;
+    let ratio = Decimal::from_ratio(amp as i128, 1u8);
+    dbg!("Am I really failing at computing levarage?");
+    let leverage = ratio * N_COINS;
+    dbg!("after leverage");
     let amp_prec = Decimal::from_ratio(AMP_PRECISION, 1u8);
 
     let c = d.pow(3) * amp_prec / (new_amount * N_COINS * N_COINS * leverage);

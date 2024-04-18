@@ -1,9 +1,9 @@
 use phoenix::utils::LiquidityPoolInitInfo;
+use soroban_sdk::testutils::arbitrary::std::dbg;
 use soroban_sdk::{
     contract, contractimpl, contractmeta, log, panic_with_error, Address, BytesN, Env, IntoVal,
     String,
 };
-use soroban_sdk::testutils::arbitrary::std::dbg;
 
 use crate::error::ContractError;
 use crate::storage::utils::{is_initialized, set_initialized};
@@ -293,7 +293,6 @@ impl StableLiquidityPoolTrait for StableLiquidityPool {
                 Decimal::from_atomics(new_balance_b, 6),
             ],
         );
-        dbg!("d is computer");
 
         let total_shares = utils::get_total_shares(&env);
         let shares = if total_shares == 0 {
@@ -321,7 +320,6 @@ impl StableLiquidityPoolTrait for StableLiquidityPool {
                 / initial_invariant)
                 .to_i128_with_precision(greatest_precision)
         };
-        dbg!("where am I now?");
 
         let token_a_client = token_contract::Client::new(&env, &config.token_a);
         let token_b_client = token_contract::Client::new(&env, &config.token_b);
@@ -683,6 +681,8 @@ fn do_swap(
         panic_with_error!(env, ContractError::AssetNotInPool);
     };
 
+    dbg!("Compute swap? ");
+
     let (return_amount, spread_amount, commission_amount) = compute_swap(
         &env,
         pool_balance_sell,
@@ -690,6 +690,8 @@ fn do_swap(
         offer_amount,
         config.protocol_fee_rate(),
     );
+
+    dbg!("Compute swap .xxxxxxxxxxxx");
 
     if let Some(ask_asset_min_amount) = ask_asset_min_amount {
         if ask_asset_min_amount > return_amount {
@@ -700,6 +702,8 @@ fn do_swap(
             panic_with_error!(&env, ContractError::SwapMinReceivedBiggerThanReturn);
         }
     }
+
+    dbg!("Assert max spread?");
 
     assert_max_spread(
         &env,
@@ -799,9 +803,11 @@ pub fn compute_swap(
     offer_amount: i128,
     commission_rate: Decimal,
 ) -> (i128, i128, i128) {
+    dbg!("XXXXX COMPUTE SWAP");
     let amp_parameters = get_amp(env).unwrap();
     let amp = compute_current_amp(env, &amp_parameters);
 
+    dbg!("XXXXX AFTER CURRENT AMP");
     let new_ask_pool = calc_y(
         env,
         amp as u128,
@@ -812,6 +818,7 @@ pub fn compute_swap(
         ],
         6,
     );
+    dbg!("XXXXX AFTER CALC Y");
 
     let return_amount = ask_pool - new_ask_pool;
     // We consider swap rate 1:1 in stable swap thus any difference is considered as spread.

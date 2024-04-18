@@ -1,8 +1,8 @@
 extern crate std;
 
 use pretty_assertions::assert_eq;
-use soroban_sdk::testutils::{AuthorizedFunction, AuthorizedInvocation};
 use soroban_sdk::testutils::arbitrary::std::dbg;
+use soroban_sdk::testutils::{AuthorizedFunction, AuthorizedInvocation};
 use soroban_sdk::{symbol_short, testutils::Address as _, Address, Env, IntoVal};
 
 use super::setup::{deploy_stable_liquidity_pool_contract, deploy_token_contract};
@@ -37,7 +37,7 @@ fn simple_swap() {
         None,
         None,
         stake_manager,
-        factory
+        factory,
     );
 
     token1.mint(&user1, &1_001_000);
@@ -153,7 +153,7 @@ fn swap_with_high_fee() {
         None,
         None,
         stake_manager,
-        factory
+        factory,
     );
 
     let initial_liquidity = 1_000_000i128;
@@ -221,7 +221,7 @@ fn swap_simulation_even_pool() {
         None,
         None,
         stake_manager,
-        factory
+        factory,
     );
 
     let initial_liquidity = 1_000_000i128;
@@ -318,7 +318,7 @@ fn swap_simulation_one_third_pool() {
         None,
         None,
         stake_manager,
-        factory
+        factory,
     );
 
     let initial_liquidity = 1_000_000i128;

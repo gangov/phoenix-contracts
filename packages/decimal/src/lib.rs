@@ -4,6 +4,7 @@
 #![no_std]
 
 use soroban_sdk::{Env, String};
+use soroban_sdk::testutils::arbitrary::std::dbg;
 
 use core::{
     cmp::{Ordering, PartialEq, PartialOrd},
@@ -18,6 +19,7 @@ extern crate alloc;
 #[derive(Debug)]
 enum Error {
     DivideByZero,
+    Overflow
 }
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd)]
@@ -206,8 +208,9 @@ impl Decimal {
     /// Returns the ratio (numerator / denominator) as a Decimal
     pub fn from_ratio(numerator: impl Into<i128>, denominator: impl Into<i128>) -> Self {
         match Decimal::checked_from_ratio(numerator, denominator) {
-            Ok(ratio) => ratio,
+            Ok(ratio) => dbg!(ratio),
             Err(Error::DivideByZero) => panic!("Denominator must not be zero"),
+            Err(Error::Overflow) => panic!("Multiplication has overflown"),
         }
     }
 
@@ -228,8 +231,8 @@ impl Decimal {
         numerator: impl Into<i128>,
         denominator: impl Into<i128>,
     ) -> Result<Self, Error> {
-        let numerator = numerator.into();
-        let denominator = denominator.into();
+        let numerator = dbg!(numerator.into());
+        let denominator = dbg!(denominator.into());
 
         // If denominator is zero, panic.
         if denominator == 0 {
@@ -317,6 +320,7 @@ impl Div for Decimal {
         match Decimal::checked_from_ratio(self.numerator(), rhs.numerator()) {
             Ok(ratio) => ratio,
             Err(Error::DivideByZero) => panic!("Division failed - denominator must not be zero"),
+            Err(Error::Overflow) => panic!("Multiplication has overflown"),
         }
     }
 }

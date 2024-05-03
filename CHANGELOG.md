@@ -19,6 +19,7 @@ and this project adheres to
 
 - vesting: Add vesting contract ([#267])
 - all: changes panic! to panic_with_error ([#269])
+- trader: Add trader contract ([#288])
 
 [#267]: https://github.com/Phoenix-Protocol-Group/phoenix-contracts/pull/267
 [#269]: https://github.com/Phoenix-Protocol-Group/phoenix-contracts/pull/269
@@ -26,6 +27,7 @@ and this project adheres to
 [#274]: https://github.com/Phoenix-Protocol-Group/phoenix-contracts/pull/274
 [#280]: https://github.com/Phoenix-Protocol-Group/phoenix-contracts/pull/280
 [#283]: https://github.com/Phoenix-Protocol-Group/phoenix-contracts/pull/283
+[#288]: https://github.com/Phoenix-Protocol-Group/phoenix-contracts/pull/288
 [#289]: https://github.com/Phoenix-Protocol-Group/phoenix-contracts/pull/289
 
 ## Bug fixes

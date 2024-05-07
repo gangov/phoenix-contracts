@@ -20,7 +20,7 @@ jobs:
       id: check-and-alert
       run: |
         # Define the list of filenames to watch for changes
-        watched_files=("config.json")
+        watched_files=("contracts/factory/src/storage.rs")
         if [[ ${{ github.event_name }} == 'pull_request' ]]; then
           changed_files=$(git diff --name-only -r HEAD^1 HEAD)
         else
